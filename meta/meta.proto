@@ -1,0 +1,11 @@
+syntax = "proto3";
+package meta;
+option go_package = "./meta";
+import "meta/meta_type.proto";
+// Meta message.
+message Meta {
+  MetaType type = 1;
+	string subtype = 2;
+	string extension = 3;
+	string datetime = 4;
+}
