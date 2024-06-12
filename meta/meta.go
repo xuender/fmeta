@@ -74,6 +74,10 @@ func readMedia(file *os.File, val *Meta) error {
 			if stream.Duration != "" {
 				val.Duration, _ = strconv.ParseFloat(stream.Duration, 64)
 			}
+
+			if stream.Channels > 0 {
+				val.Channels = int32(stream.Channels)
+			}
 		}
 	}
 

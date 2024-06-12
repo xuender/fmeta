@@ -69,6 +69,7 @@ func file(val *meta.Meta) {
 
 func audio(val *meta.Meta) {
 	fmt.Fprintf(os.Stdout, "Duration: %.3f\n", val.GetDuration())
+	fmt.Fprintf(os.Stdout, "Channels: %d\n", val.GetChannels())
 }
 
 func video(val *meta.Meta) {
