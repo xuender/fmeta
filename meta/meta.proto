@@ -8,4 +8,8 @@ message Meta {
 	string subtype = 2;
 	string extension = 3;
 	string datetime = 4;
+	int64 size = 5;
+	int32 width = 6;
+	int32 height = 7;
+	double duration = 8;
 }

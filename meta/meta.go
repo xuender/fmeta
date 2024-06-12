@@ -1,13 +1,17 @@
 package meta
 
 import (
+	"context"
 	"io"
 	"os"
+	"strconv"
 	"time"
 
+	"github.com/disintegration/imaging"
 	"github.com/dsoprea/go-exif/v3"
 	"github.com/h2non/filetype"
 	"github.com/samber/lo"
+	"gopkg.in/vansante/go-ffprobe.v2"
 )
 
 const (
@@ -31,17 +35,58 @@ func FileMeta(path string) (*Meta, error) {
 
 	defer file.Close()
 
-	val, err := GetMetaByReader(file)
+	val, err := getMetaByReader(file)
 	if err != nil {
 		return val, err
 	}
 
 	val.Datetime = info.ModTime().Format(time.DateTime)
+	val.Size = info.Size()
+
+	if isMedia(val.GetType()) {
+		if err := readMedia(file, val); err != nil {
+			return val, err
+		}
+	}
 
 	if val.GetType() != MetaType_Image {
 		return val, err
 	}
 
+	return readImage(file, val)
+}
+
+func readMedia(file *os.File, val *Meta) error {
+	if _, err := file.Seek(0, io.SeekStart); err != nil {
+		return err
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
+	defer cancel()
+
+	if data, err := ffprobe.ProbeReader(ctx, file); err == nil {
+		for _, stream := range data.Streams {
+			if stream.Width > 0 && stream.Height > 0 {
+				val.Width = int32(stream.Width)
+				val.Height = int32(stream.Height)
+			}
+
+			if stream.Duration != "" {
+				val.Duration, _ = strconv.ParseFloat(stream.Duration, 64)
+			}
+		}
+	}
+
+	return nil
+}
+
+func isMedia(mediaType MetaType) bool {
+	return mediaType == MetaType_Image ||
+		mediaType == MetaType_Audio ||
+		mediaType == MetaType_Video
+}
+
+func readImage(file *os.File, val *Meta) (*Meta, error) {
 	if _, err := file.Seek(0, io.SeekStart); err != nil {
 		return val, err
 	}
@@ -60,10 +105,25 @@ func FileMeta(path string) (*Meta, error) {
 		})
 	}
 
+	if val.GetWidth() > 0 && val.GetHeight() > 0 {
+		return val, nil
+	}
+
+	if _, err := file.Seek(0, io.SeekStart); err != nil {
+		return val, err
+	}
+
+	img, err := imaging.Decode(file)
+	if err != nil {
+		return val, err
+	}
+
+	val.Width, val.Height = int32(img.Bounds().Dx()), int32(img.Bounds().Dy())
+
 	return val, err
 }
 
-func GetMetaByReader(reader io.Reader) (*Meta, error) {
+func getMetaByReader(reader io.Reader) (*Meta, error) {
 	head := make([]byte, _headSize)
 
 	if _, err := reader.Read(head); err != nil {
