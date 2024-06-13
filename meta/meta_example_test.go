@@ -31,3 +31,12 @@ func ExampleDirMeta() {
 	// Directory
 	// stat nofound: no such file or directory
 }
+
+func ExampleDateFormat() {
+	fmt.Println(meta.DateFormat("2006/01/02 15:04:05"))
+	fmt.Println(meta.DateFormat("2006:01:02 15:04:05"))
+
+	// Output:
+	// 2006-01-02 15:04:05
+	// 2006-01-02 15:04:05
+}

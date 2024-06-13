@@ -15,7 +15,8 @@ import (
 )
 
 const (
-	_headSize = 265
+	_headSize    = 265
+	_datetimeMin = 19
 )
 
 func FileMeta(path string) (*Meta, error) {
@@ -90,6 +91,20 @@ func isMedia(mediaType MetaType) bool {
 		mediaType == MetaType_Video
 }
 
+func DateFormat(str string) string {
+	list := []rune(str)
+
+	if len(list) >= _datetimeMin {
+		list[4] = '-'
+		list[7] = '-'
+		list[10] = ' '
+		list[13] = ':'
+		list[16] = ':'
+	}
+
+	return string(list)
+}
+
 func readImage(file *os.File, val *Meta) (*Meta, error) {
 	if _, err := file.Seek(0, io.SeekStart); err != nil {
 		return val, err
@@ -98,8 +113,8 @@ func readImage(file *os.File, val *Meta) (*Meta, error) {
 	if exifs, err := ImageExif(file); err == nil {
 		lo.Find(exifs, func(exif exif.ExifTag) bool {
 			if exif.TagName == "DateTimeOriginal" {
-				if datetime, ok := exif.Value.(string); ok {
-					val.Datetime = datetime
+				if datetime, ok := exif.Value.(string); ok && len(datetime) >= _datetimeMin {
+					val.Datetime = DateFormat(datetime)
 				}
 
 				return true
